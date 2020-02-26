@@ -1,0 +1,31 @@
+=== Review this script to see if will work for your situation: https://github.com/thyarles/knsk
+* If not, proceed to manually deleting the namespace
+
+=== Check to see if there's anything in the namespace that can be deleted manually
+
+* scp the kube-config file to one of the master nodes
+* ssh to the master node
+* Set the KUBECONFIG variable: `export KUBECONFIG=<absolute path to kube-config file>`
+* `export NAMESPACE=""`
+----
+kubectl get apiservice | grep False
+kubectl get all -n ${NAMESPACE}
+kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get -n ${NAMESPACE}
+----
+
+=== After all extra resources related to the namespace have been deleted
+
+* Try to delete the namespace again: `kubectl delete ns ${NAMESPACE}`
+* If it still won't delete correctly:
+** `kubectl get ns ${NAMESPACE} -o json > tmp.json`
+** Edit tmp.json to remove the line that contains "kubernetes" in the finalizers array
+----
+kubectl proxy &
+curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http://127.0.0.1:8001/api/v1/namespaces/${NAMESPACE}/finalize
+kubectl get ns
+----
+** If the namespace has been deleted, or you're giving up for now: `kill %1`
+
+
+
+// vim: set syntax=asciidoc:
