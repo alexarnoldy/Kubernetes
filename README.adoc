@@ -1,1 +1,12 @@
+##### TIP: Set up port forwarding on all IPs on the kubectl enabled system:
+----
+kubectl port-forward --address 0.0.0.0 service/{service} {Local port}:{service port}
+Ctrl-z
+bg
+----
+
+
+
+
+
 // vim: set syntax=asciidoc:
