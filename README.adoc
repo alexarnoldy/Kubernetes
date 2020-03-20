@@ -5,9 +5,11 @@ Ctrl-z
 bg
 ----
 
-##### TIP: Fix for running containers with Podman after CRI-O has been set up on a node (should be avoided, but can be useful for troubleshooting on that specific node). Error is "Missing CNI default network":
+##### TIP: Fix for running containers with Podman after CRI-O has been set up on a node (should be avoided, but can be useful for troubleshooting on that specific node). 
 
-* Add `--net=host` to the run command, i.e: `sudo podman run --rm --net=host nvidia/cuda nvidia-smi`
+* Note: `podman run` throws the error "Missing CNI default network"
+
+* Fix is to add `--net=host` to the run command, i.e: `sudo podman run --rm --net=host nvidia/cuda nvidia-smi`
 
 
 
