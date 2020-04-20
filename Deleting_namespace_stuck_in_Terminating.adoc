@@ -1,25 +1,20 @@
 ##### TIP: Find all resources in a namespace (kubectl get all misses a bunch):
-----
-NAMESPACE=argocd && for EACH in $(kubectl api-resources --namespaced=true | awk '{print$1}' | grep -v NAME); do echo -n ${EACH}" "; kubectl get ${EACH} -n ${NAMESPACE} 2>/dev/null && echo ""; done
-----
 
 === Review this script to see if will work for your situation: https://github.com/thyarles/knsk
 * If not, proceed to manually deleting the namespace
 
-=== Check to see if there's anything in the namespace that can be deleted manually
+=== View all resources in a namespace. Can try to delete some of them manually
+* If this doesn't work, see the alternate method at the bottom
+----
+NAMESPACE=argocd && for EACH in $(kubectl api-resources --namespaced=true | awk '{print$1}' | grep -v NAME); do echo -n ${EACH}" "; kubectl get ${EACH} -n ${NAMESPACE} 2>/dev/null && echo ""; done
+----
+** If you need to delete a namespace AND IT'S NOT currently stuck in "Terminating", start by deleting resources from `kubectl get all -n ${NAMESPACE}`
 
+=== After all extra resources related to the namespace have been deleted
 * scp the kube-config file to one of the master nodes
 * ssh to the master node
 * Set the KUBECONFIG variable: `export KUBECONFIG=<absolute path to kube-config file>`
 * `export NAMESPACE=""`
-----
-kubectl get apiservice | grep False
-kubectl get all -n ${NAMESPACE}
-kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get -n ${NAMESPACE}
-----
-
-=== After all extra resources related to the namespace have been deleted
-
 * Try to delete the namespace again: `kubectl delete ns ${NAMESPACE}`
 * If it still won't delete correctly:
 ** `kubectl get ns ${NAMESPACE} -o json > tmp.json`
@@ -31,6 +26,16 @@ kubectl get ns
 ----
 ** If the namespace has been deleted, or you're giving up for now: `kill %1`
 
+=== Alternate method to view all resources in a namespace:
+* scp the kube-config file to one of the master nodes
+* ssh to the master node
+* Set the KUBECONFIG variable: `export KUBECONFIG=<absolute path to kube-config file>`
+* `export NAMESPACE=""`
+----
+kubectl get apiservice | grep False
+kubectl get all -n ${NAMESPACE}
+kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get -n ${NAMESPACE}
+----
 
 
 // vim: set syntax=asciidoc:
