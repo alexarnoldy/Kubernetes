@@ -1,3 +1,8 @@
+##### TIP: Find all resources in a namespace (kubectl get all misses a bunch):
+----
+NAMESPACE=argocd && for EACH in $(kubectl api-resources --namespaced=true | awk '{print$1}' | grep -v NAME); do echo -n ${EACH}" "; kubectl get ${EACH} -n ${NAMESPACE} 2>/dev/null && echo ""; done
+----
+
 ##### TIP: Set up port forwarding on all IPs on the kubectl enabled system:
 ----
 kubectl port-forward --address 0.0.0.0 service/{service} {Local port}:{service port}
