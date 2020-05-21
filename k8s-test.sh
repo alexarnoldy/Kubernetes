@@ -87,4 +87,5 @@ spec:
       claimName: manual-pvc
 *EOF*
 
+kubectl wait --for=condition=Ready --timeout=30s pod/manual-pod
 kubectl exec -it manual-pod -- mount | grep rbd >> /tmp/k8s.txt
