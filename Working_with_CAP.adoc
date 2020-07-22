@@ -13,6 +13,11 @@ helm install  nginx-ingress  suse/nginx-ingress --namespace nginx-ingress --set 
 --set "tcp.2222=kubecf/diego-ssh-ssh-proxy-public:2222"
 ----
 
-List deployed helm 3 charts: `helm list --all-namespaces -a`
-Seems like you need --namespace <ns> for many helm 3 commands to work
 
+
+List deployed helm 3 charts: `helm list --all-namespaces -a`
+
+
+
+Seems like you need --namespace <ns> for many helm 3 commands to work
+* Couldn't update the deployed chart. Likely needed this for that too.
