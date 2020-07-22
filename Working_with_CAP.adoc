@@ -1,0 +1,18 @@
+Deploy nginx-ingress controller: 
+----
+helm install  nginx-ingress  suse/nginx-ingress --namespace nginx-ingress --set rbac.create=true --set controller.service.externalTrafficPolicy=Local --set controller.publishService.enabled=true \
+--set "tcp.20000=kubecf/tcp-router-tcp-router-public:20000" \
+--set "tcp.20001=kubecf/tcp-router-tcp-router-public:20001" \
+--set "tcp.20002=kubecf/tcp-router-tcp-router-public:20002" \
+--set "tcp.20003=kubecf/tcp-router-tcp-router-public:20003" \
+--set "tcp.20004=kubecf/tcp-router-tcp-router-public:20004" \
+--set "tcp.20005=kubecf/tcp-router-tcp-router-public:20005" \
+--set "tcp.20006=kubecf/tcp-router-tcp-router-public:20006" \
+--set "tcp.20007=kubecf/tcp-router-tcp-router-public:20007" \
+--set "tcp.20008=kubecf/tcp-router-tcp-router-public:20008" \
+--set "tcp.2222=kubecf/diego-ssh-ssh-proxy-public:2222"
+----
+
+List deployed helm 3 charts: `helm list --all-namespaces -a`
+Seems like you need --namespace <ns> for many helm 3 commands to work
+
