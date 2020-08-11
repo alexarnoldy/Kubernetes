@@ -12,12 +12,19 @@ helm install  nginx-ingress  suse/nginx-ingress --namespace nginx-ingress --set 
 --set "tcp.20008=kubecf/tcp-router-tcp-router-public:20008" \
 --set "tcp.2222=kubecf/diego-ssh-ssh-proxy-public:2222"
 ----
+* Got the error: "helm install Error: This command needs 1 argument: chart name"
+** Due to the difference between Helm 2 and Helm 3 syntax. The command above is Helm 3 syntax but Helm 2 was installed
 
+* Used https://software.opensuse.org to upgrade to Helm 3 via kubic repos
 
-
-List deployed helm 3 charts: `helm list --all-namespaces -a`
+* List deployed helm 3 charts: `helm list --all-namespaces -a`
 
 
 
 Seems like you need --namespace <ns> for many helm 3 commands to work
 * Couldn't update the deployed chart. Likely needed this for that too.
+
+
+
+* Added SUSE chart repo: `helm repo add suse https://kubernetes-charts.suse.com/`
+* Then update the discovered repos: `helm repo update`
