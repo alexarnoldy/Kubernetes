@@ -17,14 +17,12 @@ helm install  nginx-ingress  suse/nginx-ingress --namespace nginx-ingress --set 
 
 * Used https://software.opensuse.org to upgrade to Helm 3 via kubic repos
 
-* List deployed helm 3 charts: `helm list --all-namespaces -a`
-
-
 
 Seems like you need --namespace <ns> for many helm 3 commands to work
 * Couldn't update the deployed chart. Likely needed this for that too.
 
+* List deployed helm 3 charts: `helm list --all-namespaces -a`
 
-
-* Added SUSE chart repo: `helm repo add suse https://kubernetes-charts.suse.com/`
+* Adding SUSE chart repo: `helm repo add suse https://kubernetes-charts.suse.com/`
 * Then update the discovered repos: `helm repo update`
+* Search the repo: `helm search repo suse`
