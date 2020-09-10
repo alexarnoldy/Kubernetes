@@ -1,0 +1,39 @@
+=== RKE deployed on VMs
+* Needs Docker installed
+* Deploys everything via hyperkube as containers
+* Easy to deploy etcd, controlplane, and worker on a single node
+* Deploying the first node, and it seems adding a node to the cluster, are the same command, but with --etcd --controlplan
+
+=== Creating the custom SES storage class
+
+
+NOTE: For some reason the action of K8s trying to mount an RBD image to a pod doesn't cause the rbd kernel module to load. Use `lsmod | grep rbd` to check it and `sudo modprobe rbd` to load it non-persitently
+
+* Need to ensure the rbd kernel module is loaded on boot: `sudo bash -c "echo rbd > /etc/modules-load.d/rbd.conf"`
+
+.Deploy the Storage Class via the UI
+* Create the secrets with the command line first. They cannot be created through the UI
+
+CAUTION: Creating secrets through the UI seems to only create them as type=Opaque. For the RBD SC, they need to be type=kubernetes.io/rbd. If not, PVC provisioning will fail with "Cannot get secret of type kubernetes.io/rbd"
+
+IMPORTANT: When creating secrets through Rancher UI, do not base64 encode the admin and user secrets
+
+* Select the cluster -> Storage -> Storage Classes
+* "Add Class"
+* Click in the "Provisioner" field
+** Enter: kubernetes.io/rbd
+** Select "*kubernetes.io/rbd (Custom)*" 
+* Fill the fields under Parameters
+* Will only accept an imageFormat of 1 or 2
+** Note that secret fields need the name of the deployed secret, not the key alone
+// * Need to make sure the ceph-common package is installed on all RKE worker nodes
+
+
+
+=== Deploying pods, aka Workloads
+
+.Select the cluster then the namespace, aka project
+* Resources -> Workloads -> Deploy
+* Select Global -> <cluster name> to work on non-namespaced resources (i.e. storageClass)
+* Select Global -> <cluster name> -> <namespace> to work on namespaced resources (i.e. pods)
+** PVCs are found under Resources -> Workloads -> Volumes
