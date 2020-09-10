@@ -1,6 +1,7 @@
 === RKE deployed on VMs
 * Needs Docker installed
 * Deploys everything via hyperkube as containers
+** Can deploy onto a single host with Docker or an existing K8s cluster (likely needs Docker as the CRE) for HA
 * Easy to deploy etcd, controlplane, and worker on a single node
 * Deploying the first node, and it seems adding a node to the cluster, are the same command, but with --etcd --controlplan
 
