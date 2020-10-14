@@ -116,8 +116,86 @@ storageClass.defaultClass=true
 
 .Deploy MetalLB load balancer from the kubectl server
 * Use MetalLB portion from https://github.com/alexarnoldy/CaaSP/blob/master/Nutanix/Nginx_Ingress_Controller_and_MetalLB.adoc (as I didn't know what answers were needed for the Rancher Apps method)
-* Test deploying a pod and service into the kubeflow namespace (need to create first) that picks an IP address that is assigned to MetalLB but not in use 
-* Delete the pod and service after the test has succeeded
+
+NOTE: It can be useful to configure MetalLB with at least one IP address that will not be auto-assigned and then specify that IP address for a critical service that should not be allowed to lose its external IP address to external DNS mapping.
+
+* Test deploying a pod and service into the kubeflow namespace that picks an IP address from MetalLB (must have at least one IP not in use)
+** Create the kubeflow namespace: `kubectl create ns kubeflow`
+** Create the manifest for an nginx pod and load balancer service:
+----
+cat <<EOF> nginx-metallb-test.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1
+        ports:
+        - name: http
+          containerPort: 80
+## START: Default StorageClass PVC test
+## To disable testing PVC creation via the default StorageClass comment 
+## out all lines from here through "## END: Default StorageClass PVC test"
+        volumeMounts:
+        - mountPath: /mnt/rbdvol
+          name: test-vol
+      volumes:
+      - name: test-vol
+        persistentVolumeClaim:
+          claimName: nginx-pvc
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nginx-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+## END: Default StorageClass PVC test
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: nginx
+  type: LoadBalancer
+EOF
+----
+
+NOTE: This will also test that a PVC can be created and attached to a pod by way of the default storage class. If this is not desired, comment out the appropriate lines, as described in the file.
+
+** Create the pod and service: `kubectl apply -f nginx-metallb-test.yaml -n kubeflow`
+** Test the service is reachable through the load balancer IP address from outside the cluster:
+----
+IPAddr=$(kubectl get svc -n kubeflow | grep -w nginx | awk '{print$4":"$5}' | awk -F: '{print$1":"$2}')
+curl http://${IPAddr}
+----
+*** An HTML encode output should be displayed that includes the phrase "Thank you for using nginx."
+
+** When finished with testing, delete the pod and service: `kubectl apply -f nginx-metallb-test.yaml -n kubeflow`
 
 .Enable Istio
 * Ensure the cluster name is shown in the top menu bar
@@ -125,9 +203,17 @@ storageClass.defaultClass=true
 * Select the appropriate version (1.4.10 for these tests)
 * Under "Ingress Gateway", select "True" to enable
 * Under "Select Type of...", select "LoadBalancer"
-* Under "Load Balancer IP", input an IP address that is assigned to MetalLB but not in use
+* Leave "Load Balancer IP" empty to allow MetalLB to assign an IP address
+** (Optionally) Provide an IP address that is assigned to MetalLB but not in use
+
+NOTE: It can be useful to configure MetalLB with at least one IP address that will not be auto-assigned and then specify that IP address for a critical service that should not be allowed to lose its external IP address to external DNS mapping.
+
 * Select "Save" at the bottom of the page
 * Wait until Istio becomes green
+* Validate the istio-ingressgateway has received an IP address: `svc -A | egrep --color 'EXTERNAL-IP|LoadBalancer'`
+** (Optionally) Validate an external connection to an internal Istio service: 
+*** Use the curl command to connect to a few of the *PORT(S)* listed for the istio-ingressgateway, i.e. `curl http://{$IPADDR}:15020`
+*** At least one of the ports should return "404 page not found"
 
 .Deploy Kubeflow from the kubectl server
 * Install the kfctl utility and place it in /usr/local/bin
