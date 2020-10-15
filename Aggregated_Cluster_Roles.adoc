@@ -1,0 +1,59 @@
+== Very important when needing to update cluster roles
+
+https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+
+.Highlights:
+* There are two types of cluster roles: 1) Regular 2) Aggregated
+** Regular cluster roles can be updated the same as any K8s object (i.e. kubectl edit or remove/replace with updated manifest)
+** Aggregated cluster roles can only be updated by created an aggregated cluster role object that points to the original role with rules changes to be made to it
+** Cluster roles created during K8s intallation that DO NOT begin with "system:" are likely "user facing" cluster roles, which are aggregated
+
+.Aggregated Cluster Roles 
+* They are created/managed in two parts:
+1. The role is created as an aggregated cluster role that contains an aggregation rule:
+
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: my-happy-little-cluster-role
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      rbac.example.com/aggregate-to-my-happy-little-cluster-role: "true"
+rules: [] # The control plane automatically fills in the rules
+----
+
+2. To modify or append rules to the aggregated cluster role, one must create a new cluster role that includes a label that matches the "matchLabels" definition in the aggregated cluster role:
+
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: updating-emotional-cluster-roles
+  labels:
+    rbac.example.com/aggregate-to-my-happy-little-cluster-role: "true"
+    rbac.example.com/aggregate-to-my-sad-little-cluster-role: "true"
+    rbac.example.com/aggregate-to-my-bored-little-cluster-role: "true"
+ rules: 
+- apiGroups:
+  - policy
+  resourceNames:
+  - default-psp
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+ ----
+  
+ * Can update multiple cluster roles with the same rule changes at once
+ ** The updated cluster role (i.e. updating-emotional-cluster-roles in this example) remains as part of the configuration.
+ ** Not certain but pretty sure that removing that updated cluster role would remove its rule changes from the targeted aggregated cluster role(s)
+  
+ == Note about cluster role and role bindings
+  
+ * Can update cluster role and role bindings except for the "roleRef" as this would change the privileges for the "subject" users/accounts.
+  
+    
+    
+    
