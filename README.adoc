@@ -1,3 +1,15 @@
+##### TIP: To make it easy to access multiple clusters with different authentication mechanisms:
+
+* Add kubeconfig, config and admin.conf files for all of the clusters under ~/.kube 
+** Ensure all filenames end with .conf
+** Can use discriptive filenames to organize the clusters
+* Add this line to ~/.bashrc: `export KUBECONFIG=$(for EACH in $(ls ~/.kube/*.conf); do echo -n ${EACH}":"; done)`
+* Source the file: `source ~/.bashrc`
+* Verify the configs for all clusters and contexts are available: `kubectl config view`
+* Review the contexts that are available: `kubectl config get-contexts`
+* Create a new context (i.e. use a different implicit namespace): `kubectl config set-context <name> [--cluster=<name>] [--namespace=<namespace>] [--user=<name>]`
+* Specify a context to use: `kubectl config use-context <name>`
+
 ##### TIP: Find all resources in a namespace (kubectl get all misses a bunch):
 ----
 NAMESPACE=argocd && for EACH in $(kubectl api-resources --namespaced=true | awk '{print$1}' | grep -v NAME); do echo -n ${EACH}" "; kubectl get ${EACH} -n ${NAMESPACE} 2>/dev/null && echo ""; done
