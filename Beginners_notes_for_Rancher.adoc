@@ -116,9 +116,6 @@ storageClass.defaultClass=true
 
 .Deploy MetalLB load balancer from the kubectl server
 
-NOTE: This is referenced from the MetalLB portion of this doc: https://github.com/alexarnoldy/CaaSP/blob/master/Nutanix/Nginx_Ingress_Controller_and_MetalLB.adoc as it seems easier to deploy it via manifests than through the UI.
-
-NOTE: It can be useful to configure MetalLB with at least one IP address that will not be auto-assigned and then specify that IP address for a critical service that should not be allowed to lose its external IP address to external DNS mapping.
 
 * Pull and apply the MetalLB manifests
 ----
@@ -128,7 +125,9 @@ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manife
 kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
 ----
 
-* Set at least the default IP range and, optionally, the reserved IP range that will not be auto-assigned (Note that IP ranges can also be defined by CIDR notation. Adjust this and the configmap file as needed.)
+NOTE: It can be useful to configure MetalLB with at least one IP address that will not be auto-assigned and then specify that IP address for a critical service that should not be allowed to lose its external IP address to external DNS mapping.
+
+* Set at least the default IP range and, optionally, the reserved IP range that will not be auto-assigned (Note that IP ranges can also be defined by CIDR notation. Adjust these variables and the configmap file as needed.)
 ----
 export DEFAULT_IP_RANGE_START=
 export DEFAULT_IP_RANGE_END=
@@ -160,10 +159,10 @@ EOF
 ----
 
 * Create configmap: `kubectl apply -f metallb-config.yaml`
-** Verify the configuration was applied correctly (especially review the IP address pool): `kubectl get configmap config -n metallb-system -o yaml`
-** Verify the MetalLB load balancer is running: `kubectl get all -n metallb-system`
+* Verify the configuration was applied correctly (especially review the IP address pool): `kubectl get configmap config -n metallb-system -o yaml`
+* Verify the MetalLB load balancer is running: `kubectl get all -n metallb-system`
 
-* Test deploying a pod and service into the kubeflow namespace that picks an IP address from MetalLB (must have at least one IP not in use)
+* Test deploying a pod and service into the kubeflow namespace that picks an IP address from MetalLB (must have at least one IP not in use):
 ** Create the kubeflow namespace: `kubectl create ns kubeflow`
 ** Create the manifest for an nginx pod and load balancer service:
 ----
@@ -235,17 +234,19 @@ NOTE: This will also test that a PVC can be created and attached to a pod by way
 ** Create the pod, service, and (optionally) the PVC: `kubectl apply -f nginx-metallb-test.yaml -n kubeflow`
 ** Verify the pod is "Running", the persistentvolumeclaim is "Bound", and the service has an "EXTERNAL-IP": `kubectl get pod,pvc,svc -n kubeflow`
 ** Test that the service is reachable through the load balancer IP address from outside the cluster:
+
 ----
 IPAddr=$(kubectl get svc -n kubeflow | grep -w nginx | awk '{print$4":"$5}' | awk -F: '{print$1":"$2}')
 curl http://${IPAddr}
 ----
+
 *** An HTML encoded output should be displayed that includes the phrase "Thank you for using nginx."
 
-** When finished with testing, delete the pod and service: `kubectl delete -f nginx-metallb-test.yaml -n kubeflow`
+* When finished with testing, delete the pod and service: `kubectl delete -f nginx-metallb-test.yaml -n kubeflow`
 
-.Enable Istio
+===== Enable Istio
 
-NOTE: This guide assumes Istio was installed when the RKE cluster was instantiated. If this is not the case, skip this section and install Istio as part of the Kubeflow installation. Other ingress options are beyond the scope of this guide.
+NOTE: This guide assumes Istio was installed when the RKE cluster was instantiated. 
 
 * Ensure the cluster name is shown in the top menu bar
 * Point to "Tools", then select "Istio"
@@ -259,13 +260,13 @@ NOTE: It can be useful to configure MetalLB with at least one IP address that wi
 
 * Select "Save" at the bottom of the page
 * Wait until Istio becomes green
-* Validate the istio-ingressgateway has received an IP address: `svc -A | egrep --color 'EXTERNAL-IP|LoadBalancer'`
+* Validate the istio-ingressgateway has received an IP address: `kubectl get svc -A | egrep --color 'EXTERNAL-IP|LoadBalancer'`
 ** (Optionally) Validate an external connection to an internal Istio service: 
 *** Use the curl command to connect to a few of the *PORT(S)* listed for the istio-ingressgateway, i.e. `curl http://{$IPADDR}:15020`
 *** At least one of the ports should return "404 page not found"
 
-.Deploy Kubeflow from the kubectl server
-* Install the kfctl utility and place it in /usr/local/bin
+.Prepare the Kubeflow deployment files (best done from the kubectl server)
+* Install the kfctl utility and place it in /usr/local/bin:
 ----
 wget https://github.com/kubeflow/kfctl/releases/download/v1.1.0/kfctl_v1.1.0-0-g9a3621e_linux.tar.gz
 tar xvfz kfctl_v1.1.0-0-g9a3621e_linux.tar.gz 
@@ -306,7 +307,7 @@ export CONFIG_URI="${KF_DIR}/kfctl_k8s_istio.v1.0.2.yaml"
 
 * Download the Kubeflow build files: `kfctl build -V -f ${CONFIG_URI}`
 
-.Create a new pod security policy to support Kubeflow
+===== Create a new pod security policy to support Kubeflow
 
 NOTE: This guide assumes there is not an adequate pod security policy available in the cluster and/or the user needs help in configuring one. This PSP is the most privileged and the least secure PSP available. Use at your own risk.
 
@@ -376,14 +377,26 @@ EOF
 * Append the psp-update-kubeflow-edit-kubeflow-admin.yaml file to the end of the kustomize/kubeflow-roles/base/cluster-roles.yaml file: `cat psp-update-kubeflow-edit-kubeflow-admin.yaml >> kustomize/kubeflow-roles/base/cluster-roles.yaml`
 * Verify the changes: `diff kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/cluster-roles.yaml`
 
-* Deploy Kubeflow: `kfctl apply -V -f ${CONFIG_URI}`
+.Deploy Kubeflow
+
+* Ensure these variables are still set correctly:
+----
+echo ${KF_NAME}
+echo ${BASE_DIR}
+echo ${KF_DIR}
+echo ${CONFIG_URI}
+----
+
+* Start the deployment: `kfctl apply -V -f ${CONFIG_URI}`
 
 * From another terminal, use the following command to monitor the kubeflow deployment: `watch 'kubectl get pods -A | egrep -v "Completed|Running"'`
 
 ** Over time, the number of pods that are in a state of `ContainerCreating` should decrease.
 
+.Connect to the Kubeflow web UI
+
 * Use the follow command to find the load balancer IP address (under EXTERNAL-IP) to connect to the Kubeflow UI: `kubectl get svc -n istio-system | egrep 'EXTERNAL-IP|LoadBalancer'`
-** Connect to the Kubeflow UI through a web browser pointed to the external IP address on port 80
+* Connect to the Kubeflow UI through a web browser pointed to the external IP address on port 80
 
 NOTE: During the first, successful test it took several hours for all of the deployments to deploy their pods. I really thought it was one of the worst failures to date, but many hours later I discovered virtually everything deployed correctly.
 
