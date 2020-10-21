@@ -389,7 +389,7 @@ EOF
 
 * Save a copy of the kustomize/kubeflow-roles/base/cluster-roles.yaml file: `cp -p kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/`
 * Edit the kustomize/kubeflow-roles/base/cluster-roles.yaml file
-** Search for kubeflow-kubernetes-admin ClusterRole
+** Search for kubeflow-kubernetes-admin 
 
 NOTE: Ensure the "resourceNames" refers to the correct PSP to be used.
 
@@ -404,10 +404,10 @@ NOTE: Ensure the "resourceNames" refers to the correct PSP to be used.
   verbs:
   - use
 ----
-** Search for kubeflow-kubernetes-edit ClusterRole
+** Search for kubeflow-kubernetes-edit 
 ** Insert the same lines under the "rules:" section of the kubeflow-kubernetes-edit ClusterRole
 ** Save and close the file
-* Verify the changes: `diff kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/cluster-roles.yaml`
+* Verify that only the intended changes were made to the file: `diff kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/cluster-roles.yaml`
 
 .Deploy Kubeflow
 
