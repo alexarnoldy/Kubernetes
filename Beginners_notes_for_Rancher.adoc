@@ -80,8 +80,10 @@ NOTE: Several issues along the way make it unclear what other version combinatio
 * All are on the same server and deployment performance was quite slow
 * Install and enable Docker
 
-.Deploy the Rancher UI server container (on this host or another host/VM)
+.Deploy the Rancher server (on this host or another host/VM)
+* Can be on the same bare-metal host or elsewhere, however, better on the same host if deploying to VMs that are behind a NAT router
 * Having a LAN routable IP is helpful to be able to reach the web UI
+* https://rancher.com/docs/rancher/v2.x/en/quick-start-guide/deployment/quickstart-manual-setup/
 
 .Prepare NFS server (used master node VM in these tests)
 * Can use `sudo showmount -e` on the server to verify its serving and `sudo showmount -e <NFS server IP>` from the worker nodes to verify they have everything needed to mount
@@ -89,12 +91,18 @@ NOTE: Several issues along the way make it unclear what other version combinatio
 .Create a cluster through the Rancher UI
 * Tried not to reuse cluster names to avoid unknown conflicts
 * Verify compatability between the Kubeflow version and the K8s version: https://www.kubeflow.org/docs/started/k8s/overview/
-* Disable Nginx ingress
-* Enable unrestricted Pod Security Policies
-* Deploy Rancher agent container with etcd and control plane on master node VM
-** Wait for cluster to show green "Active"
-* Deploy Rancher agent container with worker on worker node VMs
-** Wait for cluster to show green "Active"
+* Use the "From existing nodes (Custom)" option
+* Leave "Cloud Provider" set to None
+* Under Advanced Options:
+** Disable Nginx ingress
+** Enable Pod Security Policies Support 
+*** Select the unrestricted Default Pod Security Policy
+* On the next screen, select "etcd" and "Control Plane" (deselect the "Worker" option) 
+** Copy the docker run command and paste it onto the command line of the Master VM
+** Click Done and wait for cluster to show green "Active"
+* Select the "Edit" option from the right side of the cluster line 
+** Deploy Rancher agent container with the Worker option on  the worker node VMs
+** Click Save and wait for cluster to show green "Active"
 * From top menu bar, point to "Global" or the cluster name, then select the cluster name just below it
 * Select the "Kubeconfig File" button
 ** Copy the configuration into the ${HOME}/.kube/config file on a server with kubectl installed
@@ -190,7 +198,7 @@ spec:
 ## To disable testing PVC creation via the default StorageClass comment 
 ## out all lines from here through "## END: Default StorageClass PVC test"
         volumeMounts:
-        - mountPath: /mnt/rbdvol
+        - mountPath: /mnt/test-vol
           name: test-vol
       volumes:
       - name: test-vol
@@ -309,7 +317,7 @@ export CONFIG_URI="${KF_DIR}/kfctl_k8s_istio.v1.0.2.yaml"
 
 ===== Create a new pod security policy to support Kubeflow
 
-NOTE: This guide assumes there is not an adequate pod security policy available in the cluster and/or the user needs help in configuring one. This PSP is the most privileged and the least secure PSP available. Use at your own risk.
+NOTE: This section assumes there is not an adequate pod security policy available in the cluster and/or the user needs help in configuring one. The PSP created here is the most privileged and the least secure PSP possible. Use at your own risk.
 
 * Create the PSP manifest file:
 ----
@@ -346,8 +354,9 @@ EOF
 
 * Create the new PSP: `kubectl apply -f kubeflow-privileged-psp.yaml`
 
-.Update the cluster-roles.yaml manifest file to update the kubeflow-edit and kubeflow-admin cluster roles to use the new PSP
+.Update the kubeflow-edit and kubeflow-admin cluster roles in the cluster-roles.yaml manifest file to use the new PSP
 
+////
 * Create an aggregated cluster role file that will update the cluster roles during installation:
 
 ----
@@ -375,6 +384,29 @@ EOF
 ----
 * Save a copy of the kustomize/kubeflow-roles/base/cluster-roles.yaml file: `cp -p kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/`
 * Append the psp-update-kubeflow-edit-kubeflow-admin.yaml file to the end of the kustomize/kubeflow-roles/base/cluster-roles.yaml file: `cat psp-update-kubeflow-edit-kubeflow-admin.yaml >> kustomize/kubeflow-roles/base/cluster-roles.yaml`
+* Verify the changes: `diff kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/cluster-roles.yaml`
+////
+
+* Save a copy of the kustomize/kubeflow-roles/base/cluster-roles.yaml file: `cp -p kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/`
+* Edit the kustomize/kubeflow-roles/base/cluster-roles.yaml file
+** Search for kubeflow-kubernetes-admin ClusterRole
+
+NOTE: Ensure the "resourceNames" refers to the correct PSP to be used.
+
+** Insert the following lines under the "rules:" section of the kubeflow-kubernetes-admin ClusterRole:
+----
+- apiGroups:
+  - policy
+  resourceNames:
+  - kubeflow-privileged-psp
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+----
+** Search for kubeflow-kubernetes-edit ClusterRole
+** Insert the same lines under the "rules:" section of the kubeflow-kubernetes-edit ClusterRole
+** Save and close the file
 * Verify the changes: `diff kustomize/kubeflow-roles/base/cluster-roles.yaml /tmp/cluster-roles.yaml`
 
 .Deploy Kubeflow
