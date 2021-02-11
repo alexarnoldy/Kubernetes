@@ -1,4 +1,4 @@
-##### TIP: To make it easy to access multiple clusters with different authentication mechanisms:
+## TIP: To make it easy to access multiple clusters with different authentication mechanisms:
 
 * Add kubeconfig, config and admin.conf files for all of the clusters under ~/.kube 
 ** Ensure all filenames end with .conf
@@ -10,19 +10,36 @@
 * Create a new context (i.e. use a different implicit namespace): `kubectl config set-context <name> [--cluster=<name>] [--namespace=<namespace>] [--user=<name>]`
 * Specify a context to use: `kubectl config use-context <name>`
 
-##### TIP: Find all resources in a namespace (kubectl get all misses a bunch):
+## TIP: Find all resources in a namespace (kubectl get all misses a bunch):
 ----
 NAMESPACE=argocd && for EACH in $(kubectl api-resources --namespaced=true | awk '{print$1}' | grep -v NAME); do echo -n ${EACH}" "; kubectl get ${EACH} -n ${NAMESPACE} 2>/dev/null && echo ""; done
 ----
 
-##### TIP: Set up port forwarding on all IPs on the kubectl enabled system:
+## TIP: Set up port forwarding on all IPs on the kubectl enabled system:
 ----
 kubectl port-forward --address 0.0.0.0 service/{service} {Local port}:{service port}
 Ctrl-z
 bg
 ----
+* This can be paired with an SSH tunnel to allow access to a service running behind a NAT router (i.e. libvirt NAT) from a web browser on a laptop:
+** On the node inside the NAT network that has kubectl installed:
+----
+kubectl port-forward --address 0.0.0.0 -n jupyter deployment/jupyter-minimal 8888:8888
+Ctrl-z
+bg
+----
+** On the laptop, connect an SSH tunnel to a host that has access to both the laptop's network and the node running kubectl:
+----
+ssh -L localhost:8888:10.110.1.0:8888 -N sles@172.16.240.102
+----
+*** Where:
+**** `localhost:8888` is the address that the laptop will use to access the webpage
+**** `10.110.1.0:8888` is the IP of the node inside the NAT network that is running kubectl and the port that kubectl port-forward is making the service available
+**** `-N` means that a command is not to be sent through the tunnel as part of this invocation
+**** `sles@172.16.240.102` is the outisde address of the of the node that straddles the laptop's network and NAT network
 
-##### TIP: Fix for running containers with Podman after CRI-O has been set up on a node (should be avoided, but can be useful for troubleshooting on that specific node). 
+
+## TIP: Fix for running containers with Podman after CRI-O has been set up on a node (should be avoided, but can be useful for troubleshooting on that specific node). 
 
 * Note: `podman run` throws the error "Missing CNI default network"
 
