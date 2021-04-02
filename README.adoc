@@ -38,6 +38,8 @@ ssh -L localhost:8888:10.110.1.0:8888 -N sles@172.16.240.102
 **** `-N` means that a command is not to be sent through the tunnel as part of this invocation
 **** `sles@172.16.240.102` is the outisde address of the of the node that straddles the laptop's network and NAT network
 
+NOTE: To forward multiple ports, must use a -L before each: `ssh -L localhost:8443:10.222.11.11:443 -L localhost:8080:10.222.11.11:80 -N k3ai-host-1`
+
 
 ## TIP: Fix for running containers with Podman after CRI-O has been set up on a node (should be avoided, but can be useful for troubleshooting on that specific node). 
 
