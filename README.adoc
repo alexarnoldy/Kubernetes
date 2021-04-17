@@ -47,6 +47,32 @@ NOTE: To forward multiple ports, must use a -L before each: `ssh -L localhost:84
 
 * Fix is to add `--net=host` to the run command, i.e: `sudo podman run --rm --net=host nvidia/cuda nvidia-smi`
 
+## TIP: Expose a service through a specific NodePort:
 
+* Verify that the service is currently of the type ClusterIP:
+----
+kubectl -n cattle-system get svc/rancher
+----
+* If the service is ClusterIP, use the following commands to change it to NodePort and assign it port 30442 on the Linux host:
+
+----
+cat <<EOF> patch-NodePort.yaml
+spec:
+  type: NodePort
+  ports:
+    - port: 443
+      nodePort: 30443
+      name: https-internal
+EOF
+----
+----
+kubectl patch -n cattle-system svc/rancher --patch "$(cat patch-NodePort.yaml)"
+----
+* Verify the exposed port for the service:
+----
+kubectl -n cattle-system get svc/rancher | awk -F442: '{print$2}' | awk -F\/ '{print$1}'
+----
+
+NOTE: Might need a load balancer and ingress rules if services specifically depend on port 443 being exposed.
 
 // vim: set syntax=asciidoc:
