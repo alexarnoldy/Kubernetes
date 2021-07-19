@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## Test the successful, automatic formation of a CaaS Platform cluster
+## Test the successful, automatic formation of a Kubernetes cluster
 ## Includes testing a default storage class
 
 . /home/sles/.bashrc
@@ -33,10 +33,10 @@ spec:
     image: alpine
     command: ["sleep","3600"]
     volumeMounts:
-    - mountPath: /mnt/rbdvol
-      name: rbdvol
+    - mountPath: /mnt/pvcvol
+      name: pvcvol
   volumes:
-  - name: rbdvol
+  - name: pvcvol
     persistentVolumeClaim:
       claimName: manual-pvc
 *EOF*
@@ -47,7 +47,7 @@ sles@hol1289-base:~/tst1/files> vim k8s-test.sh
 sles@hol1289-base:~/tst1/files> cat k8s-test.sh
 #!/bin/bash
 
-## Test the successful, automatic formation of a CaaS Platform cluster
+## Test the successful, automatic formation of a Kubernetes cluster
 
 . /home/sles/.bashrc
 
@@ -79,10 +79,10 @@ spec:
     image: alpine
     command: ["sleep","3600"]
     volumeMounts:
-    - mountPath: /mnt/rbdvol
-      name: rbdvol
+    - mountPath: /mnt/pvcvol
+      name: pvcvol
   volumes:
-  - name: rbdvol
+  - name: pvcvol
     persistentVolumeClaim:
       claimName: manual-pvc
 *EOF*
