@@ -1,0 +1,79 @@
+Notes from A Cloud Guru CKA course
+
+========================================================================
+========================================================================
+Formatting
+========================================================================
+========================================================================
+set -o vi
+export EDITOR=vi
+alias kgp="kubectl get pods -o wide"
+alias kgn="kubectl get nodes -o wide"
+alias kgd="kubectl get deploy -o wide"
+alias kaf="kubectl apply -f "
+alias kdf="kubectl delete -f "
+alias krd="kubectl run --dry-run=client -o yaml "
+alias kcd="kubectl create --dry-run=client -o yaml "
+
+========================================================================
+========================================================================
+Lessons Learned
+========================================================================
+========================================================================
+kubectl api-resources to see all APIs
+Change the visudo editor for a single vim session: sudo EDITOR=vim visudo
+Append to (or create, if doesn’t exist) a file: cat <<EOF | sudo tee <filename>
+Tmux tricks:
+Ctrl+b is the default command sequence
+: setw synchronize-panes
+Toggles on and off
+Create a ~/.tmux.conf file with:
+bind-key a set-window-option synchronize-panes
+ALWAYS use kubectl -n <ns> <sub commands>
+Don’t do kubectl apply -f - <<EOF
+It makes it harder to go back and fix stuff
+Better to use cat <<EOF> filename
+Simple resources like namespaces and service accounts are best created on the command line
+If copying and pasting YAML results in messed up spacing, change to cat <<EOF> filename <pasted contents>, then vim to update
+Try to use a standard naming convention when creating resources, as much as is possible, i.e. my-application-dep, my-application-role, my-application-rb
+This reduces the number of times you have to go back and verify when referring to another resource
+Pay close attention to error messages when creating resources. They often include the json path to the item that has problems.
+Static pods are not affected by any plugins, admission controllers, etc. configured in kube-apiserver b/c they are created directly by kubelet and not through kube-apiserver
+
+
+
+
+========================================================================
+
+Tips and Tricks:
+kubectl create <cr>  to see all of the objects that can be created imperitively
+Use –dry-run -o yaml >> <out file> to create a generic yaml file
+—record flag to save the command used to change an objects as the object’s annotation
+kubectl describe to see contents of secrets and configmaps
+
+
+Installing a cluster with kubeadm
+Need to configure a few things like network forwarding and module loading, then install containerd, then kubeadm
+Installing with kubeadm: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+Installing containerd: https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd
+Doesn’t tell you to install the package so the first command to call on containerd to create a config file will fail. 
+Installing a specific version of a package is: kubeadm=1.22.0-00
+K8s docs describe updating the cgroup driver to systemd for kubelet and containerd, but ACloud instructions don’t have it
+K8s docs aren’t good about showing needed options to kubeadm init. Used sudo kubeadm init --pod-network-cidr 192.168.0.0/16 --kubernetes-version 1.22.0
+Couldn’t find a doc that showed how to install Calico. Used kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+To get the join token from kubeadm: kubeadm token create --print-join-command
+
+
+
+
+
+ConfigMaps and Secrets
+ConfigMaps and Secrets mounted as volumes are directories in the container filesystem
+Each key is a file in the directory
+Each value is the contents of the file
+ConfigMaps can have nested key maps
+Seems like it would be most useful with volume mounts as the nested maps SHOULD appear as directories under the volume mount directory, with the nested keys as files and values as the contents of the files
+ConfigMap data is not base64 encoded, Secrets must be
+When base64 encoding, make sure to strip out the trailing <cr> (i.e. with echo -n)
+
+
