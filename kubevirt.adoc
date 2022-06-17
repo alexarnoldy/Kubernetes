@@ -1,0 +1,166 @@
+#### Initially working with 15sp3 in mid-2022. Not supported until 15sp4.
+
+* Using https://documentation.suse.com/sbp/all/single-html/SBP-KubeVirt-SLES15SP3/index.html
+
+* Doesn't seem to cover how to use Containerized Data Importer to bring a qcow2 or iso into kubevirt as a Data Volume
+
+* The package for the Containerized Data Importer doesn't exist as specified (likely b/c it's not in 15sp3)
+** Got the package from software.opensuse.org
+*** The manifests pointed to container versions that don't exist on registry.opensuse.org
+**** Changed to version 1.49.0 and things seems to work
+
+
+* Using K3s with local-path SC disabled and using Longhorn from: https://rancher.com/docs/k3s/latest/en/storage/
+** Includes PVC and pod test to validate
+
+#### Working with CDI
+
+* Upload an existing JeOS image into a DV that gets created by this invocation: `virtctl image-upload dv jeos-image --size=10Gi --image-path=images/openSUSE-Leap-15.4-JeOS.x86_64-OpenStack-Cloud.qcow2`
+** Exits with complaint "certificate signed by unknown authority" 
+*** 
+
+* The following failed as this secret doesn't exist
+----
+kubectl get secret -n cdi cdi-uploadproxy-server-cert \
+  -o jsonpath="{.data['tls\.crt']}" \
+  | base64 -d > cdi-uploadproxy-server-cert.crt
+----
+
+* Following the upstream instructions from: https://kubevirt.io/quickstart_minikube/
+
+----
+export VERSION=$(curl -s https://api.github.com/repos/kubevirt/kubevirt/releases | grep tag_name | grep -v -- '-rc' | sort -r | head -1 | awk -F': ' '{print $2}' | sed 's/,//' | xargs)
+
+echo $VERSION
+
+kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/kubevirt-operator.yaml
+----
+
+* After running the next command use `kubectl -n kubevirt get all` to verify the kubevirt resource has a PHASE of Deployed:
+
+----
+kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/kubevirt-cr.yaml
+----
+
+* Install virtctl:
+
+----
+VERSION=$(kubectl get kubevirt.kubevirt.io/kubevirt -n kubevirt -o=jsonpath="{.status.observedKubeVirtVersion}")
+ARCH=$(uname -s | tr A-Z a-z)-$(uname -m | sed 's/x86_64/amd64/') || windows-amd64.exe
+echo ${ARCH}
+curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-${ARCH}
+chmod +x virtctl
+sudo install virtctl /usr/local/bin
+----
+
+* The K3s kubeconfig file must be available to virtctl, helm, etc.:
+
+----
+mkdir .kube
+cp -p /etc/rancher/k3s/k3s.yaml .kube/config
+----
+
+* Test virtcl: `virtctl version`
+** Should get version info from both Client and Server
+
+## Install Containerized Data Importer, from https://kubevirt.io/labs/kubernetes/lab2.html
+
+----
+### This didn't work as it doesn't refer to the api.github.com URL
+export VERSION=$(curl -s https://github.com/kubevirt/containerized-data-importer/releases/latest | grep -o "v[0-9]\.[0-9]*\.[0-9]*")
+
+
+export VERSION="v1.50.0"
+kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-operator.yaml
+kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-cr.yaml
+----
+
+* Check the deployment of CDI pieces: 
+
+----
+kubectl -n cdi get all
+kubectl -n cdi get cdi cdi
+----
+
+* Test that the CDI can import images:
+
+----
+cat <<EOF > pvc_fedora.yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "fedora"
+  labels:
+    app: containerized-data-importer
+  annotations:
+    cdi.kubevirt.io/storage.import.endpoint: "https://download.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-Base-33-1.2.x86_64.raw.xz"
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+EOF
+
+kubectl create -f pvc_fedora.yml
+----
+
+* Validate the importer is running:
+
+----
+kubectl get pvc fedora -o yaml
+kubectl get pod # Make note of the pod name assigned to the import process
+POD_NAME=$(kubectl get pod | awk '/Running/ {print$1}')
+kubectl logs -f ${POD_NAME}
+----
+
+** IMPORTANT: Since the importing process is called by creating a PVC with the proper annotations, to attempt another import a different PVC needs to be created or the existing one deleted before being recreated
+
+* Create a test VM:
+
+----
+wget https://kubevirt.io/labs/manifests/vm1_pvc.yml
+----
+
+* Update the VM spec to inject the local SSH public key (though can only SSH locally from the node the VM will run on):
+
+** Validate the public key: `cat ~/.ssh/id_rsa.pub`
+
+----
+PUBKEY=`cat ~/.ssh/id_rsa.pub`
+sed -i "s%ssh-rsa.*%$PUBKEY%" vm1_pvc.yml
+cat vm1_pvc.yml
+----
+
+* Create the VM:
+
+----
+kubectl create -f vm1_pvc.yml
+----
+
+* Check the status of virt-launcher and the vmi:
+
+----
+kubectl get pods -o wide
+kubectl get vmi
+----
+
+* After the virt-launcher for the VM is running, connect to the VM's console to watch boot messages (Ctrl+] to disconnect): `virtctl console <VM name>`
+
+* SSH to the VM from the node it's running on:
+
+----
+kubectl get vmi		#Get the ClusterIP of the VM
+ssh <user, i.e. fedora>@<ClusterIP>
+----
+
+* Expose the VM's SSH port via NodePort:
+
+----
+virtctl expose vmi <VM Name> --name=vm1-ssh --port=20222 --target-port=22 --type=NodePort
+----
+
+
+
+
+
