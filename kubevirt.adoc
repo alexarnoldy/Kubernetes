@@ -99,7 +99,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 5Gi   #This is the size the deployed VM's root disk will be
 EOF
 
 kubectl create -f pvc_fedora.yml
@@ -116,7 +116,7 @@ kubectl logs -f ${POD_NAME}
 
 ** IMPORTANT: Since the importing process is called by creating a PVC with the proper annotations, to attempt another import a different PVC needs to be created or the existing one deleted before being recreated
 
-* Create a test VM:
+## Create a test VM:
 
 ----
 wget https://kubevirt.io/labs/manifests/vm1_pvc.yml
@@ -150,7 +150,7 @@ kubectl get vmi
 * SSH to the VM from the node it's running on:
 
 ----
-kubectl get vmi		#Get the ClusterIP of the VM
+kubectl get vmi		#Get the pod network IP address of the VM
 ssh <user, i.e. fedora>@<ClusterIP>
 ----
 
