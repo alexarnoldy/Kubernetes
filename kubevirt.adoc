@@ -26,7 +26,7 @@ kubectl get secret -n cdi cdi-uploadproxy-server-cert \
   | base64 -d > cdi-uploadproxy-server-cert.crt
 ----
 
-* Following the upstream instructions from: https://kubevirt.io/quickstart_minikube/
+# Successful when following the upstream instructions from: https://kubevirt.io/quickstart_minikube/
 
 ----
 export VERSION=$(curl -s https://api.github.com/repos/kubevirt/kubevirt/releases | grep tag_name | grep -v -- '-rc' | sort -r | head -1 | awk -F': ' '{print $2}' | sed 's/,//' | xargs)
@@ -36,11 +36,13 @@ echo $VERSION
 kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/kubevirt-operator.yaml
 ----
 
-* After running the next command use `kubectl -n kubevirt get all` to verify the kubevirt resource has a PHASE of Deployed:
+* Create the kubevirt CRD:
 
 ----
 kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/kubevirt-cr.yaml
 ----
+
+* After running the previous command use `watch -c kubectl -n kubevirt get all` to verify the kubevirt resource has a PHASE of Deployed
 
 * Install virtctl:
 
@@ -56,7 +58,7 @@ sudo install virtctl /usr/local/bin
 * The K3s kubeconfig file must be available to virtctl, helm, etc.:
 
 ----
-mkdir .kube
+mkdir -p .kube
 cp -p /etc/rancher/k3s/k3s.yaml .kube/config
 ----
 
@@ -78,8 +80,7 @@ kubectl create -f https://github.com/kubevirt/containerized-data-importer/releas
 * Check the deployment of CDI pieces: 
 
 ----
-kubectl -n cdi get all
-kubectl -n cdi get cdi cdi
+watch -c kubectl -n cdi get all,cdi
 ----
 
 * Test that the CDI can import images:
@@ -110,11 +111,12 @@ kubectl create -f pvc_fedora.yml
 ----
 kubectl get pvc fedora -o yaml
 kubectl get pod # Make note of the pod name assigned to the import process
+sleep 5
 POD_NAME=$(kubectl get pod | awk '/Running/ {print$1}')
 kubectl logs -f ${POD_NAME}
 ----
 
-** IMPORTANT: Since the importing process is called by creating a PVC with the proper annotations, to attempt another import a different PVC needs to be created or the existing one deleted before being recreated
+** IMPORTANT: Since the importing process is called by creating a PVC with the proper annotations, to attempt another import a different PVC needs to be created or the existing one deleted and recreated
 
 ## Create a test VM:
 
@@ -124,7 +126,7 @@ wget https://kubevirt.io/labs/manifests/vm1_pvc.yml
 
 * Update the VM spec to inject the local SSH public key (though can only SSH locally from the node the VM will run on):
 
-** Validate the public key: `cat ~/.ssh/id_rsa.pub`
+** Validate this user(on the K3s host)'s public key: `cat ~/.ssh/id_rsa.pub`
 
 ----
 PUBKEY=`cat ~/.ssh/id_rsa.pub`
@@ -151,7 +153,7 @@ kubectl get vmi
 
 ----
 kubectl get vmi		#Get the pod network IP address of the VM
-ssh <user, i.e. fedora>@<ClusterIP>
+ssh <user, i.e. fedora>@<Pod network IP address>
 ----
 
 * Expose the VM's SSH port via NodePort:
