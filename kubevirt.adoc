@@ -162,6 +162,24 @@ ssh <user, i.e. fedora>@<Pod network IP address>
 virtctl expose vmi <VM Name> --name=vm1-ssh --port=20222 --target-port=22 --type=NodePort
 ----
 
+## To make a VM live migratable:
+
+* PVC must be RWX (thus CNI must support RWX)
+* VM spec must include an interface reference that uses masquerade and point to a network (pod or multus)
+** E.g.:
+
+----
+kind: VM
+spec:
+  domain:
+    devices:
+      interfaces:
+        - name: default
+          masquerade: {}
+  networks:
+  - name: default
+    pod: {} # Stock pod network
+----
 
 
 
