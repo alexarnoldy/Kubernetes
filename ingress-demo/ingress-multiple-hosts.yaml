@@ -1,0 +1,60 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: multiple-routes
+spec:
+  tls:
+  - hosts:
+      - chekov.susealliances.com
+      - terrell.susealliances.com
+    secretName: wrath-of-khan-tls
+  ingressClassName: nginx
+  rules:
+  - host: "chekov.susealliances.com"
+    http:
+      paths:
+      - path: /app1
+        pathType: Prefix
+        backend:
+          service:
+            name: webapp1-svc
+            port: 
+              number: 80
+      - path: /app2
+        pathType: Prefix
+        backend:
+          service:
+            name: webapp2-svc
+            port: 
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: webapp3-svc
+            port: 
+              number: 80
+  - host: "terrell.susealliances.com"
+    http:
+      paths:
+      - path: /app1
+        pathType: Prefix
+        backend:
+          service:
+            name: webapp4-svc
+            port: 
+              number: 80
+      - path: /app2
+        pathType: Prefix
+        backend:
+          service:
+            name: webapp5-svc
+            port: 
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: webapp6-svc
+            port: 
+              number: 80
