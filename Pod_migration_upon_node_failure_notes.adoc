@@ -1,0 +1,15 @@
+## General
+
+* See https://gist.github.com/alexarnoldy/d85dd942ef72e2390bfeefdfcb79927f for how to speed detection of failed kubelet and reduce migratation times to about 20 seconds
+
+* On Harvester v1.1.1, testing found that VMs come back online up to 16 minutes after node has failed
+
+** Default setting for `node-monitor-grace-period` is five minutes
+
+** Harvester has a default setting for `vm-force-reset-policy` of five minutes (configurable through the UI)
+
+** https://jira.suse.com/browse/SURE-6395 mentions that the `reconciler.go` module (https://github.com/kubernetes/kubernetes/blob/da1f52034eb3c405de1ca2dc0e1a6163e8a48f4f/pkg/controller/volume/attachdetach/reconciler/reconciler.go#L216-L293) maintains a fixed timeout called `maxWaitForUnmountDuration` that waits six minutes for an attached volume to show as unmounted (which the kubelet on a failed node will never be able to do) before forcefully deleting the failed node's VolumeAttachment and creating a new one on an alternate node
+
+* Can lower `node-monitor-grace-period` and `vm-force-reset-policy` to a matter of 10's of seconds (with appropriate testing), but cannot change reconciler.go
+
+
