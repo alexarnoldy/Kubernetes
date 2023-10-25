@@ -1,0 +1,33 @@
+== Create the TLS certificate, or obtain the fullchain.pem and privkey.pem for a current cert
+
+- If the regirstry is someplace outside of the lab, might be better to create a unique cert rather than use a wildcard
+
+== SCP the cert and key to the registry host.
+
+- Put them in /opt/certs
+- Need to experiment with putting them in /etc/
+-- Had trouble with keeping them under a home directory
+
+== Ensure SELinux and Apparmor are disabled
+
+- When they (especially SELinux) get in the way, you'll see errors in the container like `level=fatal msg="open /opt/certs/fullchain.pem: no such file or directory"`
+
+- CMD: `getenforce` to see the current SELinux mode
+
+- Needed to edit the /etc/sysconfig/selinux file and run `setenforce 0`, then reboot to get SELinux to enter permissive mode
+
+== Run the registry container
+
+----
+docker run -d \
+  --restart=always \
+  --name registry \
+  -v /opt/certs:/certs \
+  -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
+  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/fullchain.pem \
+  -e REGISTRY_HTTP_TLS_KEY=/certs/privkey.pem \
+  -p 443:443 \
+  registry:2
+----
+
+
