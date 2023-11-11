@@ -75,4 +75,11 @@ kubectl -n cattle-system get svc/rancher | awk -F442: '{print$2}' | awk -F\/ '{p
 
 NOTE: Might need a load balancer and ingress rules if services specifically depend on port 443 being exposed.
 
+
+## TIP: Restart a Kuberentes Job that has completed:
+
+----
+kubectl get pods -n <namespace> -l <selector>=<label | kubectl replace --force -f-
+----
+
 // vim: set syntax=asciidoc:
