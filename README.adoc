@@ -17,10 +17,11 @@ NAMESPACE=argocd && for EACH in $(kubectl api-resources --namespaced=true | awk 
 
 ## TIP: Set up port forwarding on all IPs on the kubectl enabled system:
 ----
-kubectl port-forward --address 0.0.0.0 service/{service} {Local port}:{service port}
+kubectl port-forward -n <namespace>--address 0.0.0.0 resource-type/resource {Local port}:{service port}
 Ctrl-z
 bg
 ----
+* Resource can be a service, deploy (or daemonset, job, etc), or pod. Just as long as the specified resource is listening onthe specified port (watch out for services that listen on a differnt port than their endpoints)
 * This can be paired with an SSH tunnel to allow access to a service running behind a NAT router (i.e. libvirt NAT) from a web browser on a laptop:
 ** On the node inside the NAT network that has kubectl installed:
 ----
