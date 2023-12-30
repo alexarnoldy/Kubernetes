@@ -1,3 +1,44 @@
+## Cluster and namespace switchers using tab completion. Add this code block to the .bashrc file:
+----
+# Function to switch between K8s clusters with kubeconfig files in ${HOME}/.kube/
+k8s_cluster_select ()
+{
+ unset KUBECONFIG
+ export KUBECONFIG=${HOME}/.kube/$1
+}
+
+# Function to configure command completion for the k8s_switch_cluster function
+_kube_cluster_completion()
+{
+  local curr_arg;
+  curr_arg=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=( $(compgen -W "- $(ls -1 -p ${HOME}/.kube | grep -v /)" -- $curr_arg ) );
+}
+
+complete -F _kube_cluster_completion k8s_cluster_select
+
+# Function to switch between namespaces in the currently selected K8s cluster
+
+k8s_namespace_select ()
+{
+ read -r -d '' -a CURRENT_CONTEXT < <( kubectl config get-contexts | grep ^* && printf '\0' )
+ kubectl config set-context $1 --cluster=$(echo "${CURRENT_CONTEXT[2]}") --user=$(echo "${CURRENT_CONTEXT[3]}") --namespace=$1
+ kubectl config use-context $1
+}
+
+# Function to  configure command completion for the k8s_namespace_select function
+
+_kube_namespace_completion()
+{
+ local curr_arg
+ curr_arg=${COMP_WORDS[COMP_CWORD]}
+ COMPREPLY=( $(compgen -W "- $(kubectl get namespaces -o custom-columns=:.metadata.name | grep -v ^$)" -- $curr_arg ) )
+}
+
+complete -F _kube_namespace_completion k8s_namespace_select
+----
+NOTE: To use the functions, start the command (i.e. k8s_) then "c" or "n" and use tab completion to finish the command, then tab completion to select the cluster, or the namespace inside the selected cluster.
+
 ## TIP: To make it easy to access multiple clusters with different authentication mechanisms:
 
 * Add kubeconfig, config and admin.conf files for all of the clusters under ~/.kube 
@@ -17,10 +58,11 @@ NAMESPACE=argocd && for EACH in $(kubectl api-resources --namespaced=true | awk 
 
 ## TIP: Set up port forwarding on all IPs on the kubectl enabled system:
 ----
-kubectl port-forward --address 0.0.0.0 service/{service} {Local port}:{service port}
+kubectl port-forward -n <namespace>--address 0.0.0.0 resource-type/resource {Local port}:{service port}
 Ctrl-z
 bg
 ----
+* Resource can be a service, deploy (or daemonset, job, etc), or pod. Just as long as the specified resource is listening onthe specified port (watch out for services that listen on a differnt port than their endpoints)
 * This can be paired with an SSH tunnel to allow access to a service running behind a NAT router (i.e. libvirt NAT) from a web browser on a laptop:
 ** On the node inside the NAT network that has kubectl installed:
 ----
@@ -74,5 +116,12 @@ kubectl -n cattle-system get svc/rancher | awk -F442: '{print$2}' | awk -F\/ '{p
 ----
 
 NOTE: Might need a load balancer and ingress rules if services specifically depend on port 443 being exposed.
+
+
+## TIP: Restart a Kuberentes Job that has completed:
+
+----
+kubectl get pods -n <namespace> -l <selector>=<label | kubectl replace --force -f-
+----
 
 // vim: set syntax=asciidoc:
