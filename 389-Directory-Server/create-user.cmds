@@ -1,0 +1,7 @@
+kubectl exec -ti dirsrv-0 -- dsidm localhost --basedn dc=susealliances,dc=com user create --uid ldap_user --cn ldap_user --displayName ldap_user --uidNumber 1001 --gidNumber 1001 --homeDirectory /home/ldap_user
+kubectl exec -ti dirsrv-0 -- dsidm localhost --basedn dc=susealliances,dc=com account change_password uid=ldap_user,ou=people,dc=susealliances,dc=com
+
+
+kubectl exec -ti dirsrv-1 -- dsidm localhost --basedn dc=susealliances,dc=com user list
+
+ldapwhoami -x -H ldap://dirsrv-external-svc.susealliances.com:3389 -D "uid=ldap_user,ou=people,dc=susealliances,dc=com" -w mypassword

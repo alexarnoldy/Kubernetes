@@ -1,0 +1,12 @@
+kubectlubectl exec -ti dirsrv-0 -- dsconf localhost backend create --suffix dc=susealliances,dc=com --be-name userroot --create-suffix --create-entries
+kubectlubectl exec -ti dirsrv-1 -- dsconf localhost backend create --suffix dc=susealliances,dc=com --be-name userroot --create-suffix --create-entries
+kubectlubectl exec -ti dirsrv-0 -- dsconf localhost replication enable --suffix dc=susealliances,dc=com --role=supplier --replica-id 1
+kubectlubectl exec -ti dirsrv-1 -- dsconf localhost replication enable --suffix dc=susealliances,dc=com --role=supplier --replica-id 2
+kubectlubectl exec -ti dirsrv-0 -- dsconf localhost replication create-manager --name rmanager --passwd password --suffix dc=susealliances,dc=com
+kubectlubectl exec -ti dirsrv-1 -- dsconf localhost replication create-manager --name rmanager --passwd password --suffix dc=susealliances,dc=com
+
+kubectl exec -ti dirsrv-0 -- dsconf localhost repl-agmt create --suffix dc=susealliances,dc=com --bind-dn cn=rmanager,cn=config --bind-passwd password --bind-method SIMPLE --conn-protocol LDAP --host dirsrv-1.dirsrv-internal-svc.389ds.svc.cluster.local --port 3389 meTo1
+kubectl exec -ti dirsrv-1 -- dsconf localhost repl-agmt create --suffix dc=susealliances,dc=com --bind-dn cn=rmanager,cn=config --bind-passwd password --bind-method SIMPLE --conn-protocol LDAP --host dirsrv-0.dirsrv-internal-svc.389ds.svc.cluster.local --port 3389 meTo0
+
+kubectl exec -ti dirsrv-0 -- dsconf localhost repl-agmt init meTo1 --suffix dc=susealliances,dc=com
+
