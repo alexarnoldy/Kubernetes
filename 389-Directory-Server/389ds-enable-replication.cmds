@@ -1,3 +1,5 @@
+## Run after a second pod in the statefulSet has been created
+
 kubectlubectl exec -ti dirsrv-0 -- dsconf localhost backend create --suffix dc=susealliances,dc=com --be-name userroot --create-suffix --create-entries
 kubectlubectl exec -ti dirsrv-1 -- dsconf localhost backend create --suffix dc=susealliances,dc=com --be-name userroot --create-suffix --create-entries
 kubectlubectl exec -ti dirsrv-0 -- dsconf localhost replication enable --suffix dc=susealliances,dc=com --role=supplier --replica-id 1

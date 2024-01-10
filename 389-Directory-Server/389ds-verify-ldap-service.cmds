@@ -1,0 +1,5 @@
+kubectl run ldap-client --rm -it --image=quay.io/389ds/clients:latest -- bash
+
+ldapsearch -xLLL -H ldap://dirsrv-internal-svc.389ds.svc.cluster.local:3389 -b "" -s base
+
+
