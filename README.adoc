@@ -39,6 +39,35 @@ complete -F _kube_namespace_completion k8s_namespace_select
 ----
 NOTE: To use the functions, start the command (i.e. k8s_) then "c" or "n" and use tab completion to finish the command, then tab completion to select the cluster, or the namespace inside the selected cluster.
 
+## TIP: Consume the contents of a secret or configmap to set shell environmental variables:
+
+NOTE: The secret or configmap keys are the variable keys and the values are the variable values (seems obvious, but maybe not to everyone).
+
+NOTE: The two step operation might be better for documents to keep repetition down. Just need to source the variables file after creating it.
+
+* Single operation for environmental variables saved in a configmap:
+----
+source <(kubectl get configmap -n cattle-system variables -o json | jq -r '.data | to_entries[] | "\(.key)=\(.value)"' | sed 's/^/export /')
+----
+
+* Two step operation for environmental variables saved in a configmap:
+----
+kubectl get configmap -n cattle-system variables -o json | jq -r '.data | to_entries[] | "\(.key)=\(.value)"' | sed 's/^/export /' > /tmp/variables
+
+source /tmp/variables
+----
+
+* Single and two step operations for environmental variables saved in a secret:
+----
+source <(kubectl get secret -n cattle-system variables -o json | jq -r '.data | to_entries[] | "\(.key)=\(.value | @base64d)"' | sed 's/^/export /')
+----
+
+----
+kubectl get secret -n cattle-system variables -o json | jq -r '.data | to_entries[] | "\(.key)=\(.value | @base64d)"' | sed 's/^/export /' > /tmp/variables
+
+source /tmp/variables
+----
+
 ## TIP: To make it easy to access multiple clusters with different authentication mechanisms:
 
 * Add kubeconfig, config and admin.conf files for all of the clusters under ~/.kube 
