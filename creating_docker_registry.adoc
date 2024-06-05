@@ -4,9 +4,9 @@
 
 == SCP the cert and key to the registry host.
 
-- Put them in /opt/certs
-- Need to experiment with putting them in /etc/
--- Had trouble with keeping them under a home directory
+- Put them in /etc/certs
+//- Need to experiment with putting them in /etc/
+//-- Had trouble with keeping them under a home directory
 
 == Ensure SELinux and Apparmor are disabled
 
@@ -22,7 +22,7 @@
 docker run -d \
   --restart=always \
   --name registry \
-  -v /opt/certs:/certs \
+  -v /etc/certs:/certs \
   -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
   -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/fullchain.pem \
   -e REGISTRY_HTTP_TLS_KEY=/certs/privkey.pem \
